@@ -1,5 +1,5 @@
 <?php
-namespace sdbh;
+namespace App\Infrastructure;
 /* Small DataBase Handler */
 class sdbh
 {
@@ -12,13 +12,14 @@ class sdbh
     public $sql_read;
     public $sql_write;
 
-    function __construct(array $settings = [])
+    function __construct()
     {
-        $this->port = $settings['host'] ?: 3306;
-        $this->host = $settings['host'] ?: 'localhost';
-        $this->dbname = $settings['dbname'] ?: 'test_a25';
-        $this->user = $settings['user'] ?: 'root';
-        $this->pass = $settings['pass'] ?: '';
+        // нет необходимости держать в массиве данные от бд, они нигде не используются кроме как в конструкторе класса
+        $this->port =  3306;
+        $this->host = 'localhost';
+        $this->dbname = 'a25';
+        $this->user = 'root';
+        $this->pass = '';
         $mysql_conn = mysqli_connect($this->host, $this->user, $this->pass, $this->dbname, $this->port);
 
         $this->sql_read = $mysql_conn;
@@ -115,10 +116,22 @@ class sdbh
     public function make_query($query, $reconnect = false)
     {
         $this->sql = $this->get_connection($query);
+        // Устанавливаем кодировку UTF-8 для mysqli_connect
+        mysqli_set_charset($this->sql, 'utf8');
+        // Выполняем запрос
         $r = $this->query_ds_exc($query, $reconnect);
+
+        /*
+         * Проверим запрос на наличие ошибок
+         * если запрос селект, то перейдем на условие elseif
+         * потом вернем кол-во затронутых строк
+         * после исправления мы увидим чекбоксы в "Дополнительно" и у нас пофиксится кодировка
+         */
+
         if (mysqli_errno($this->sql)) {
             return mysqli_error($this->sql);
-        } elseif (stristr(substr($query, 0, 10), 'select') !== false) {
+        }
+        elseif (stristr(substr($query, 0, 10), 'select') !== false) {
             return $this->get_all_assoc($r);
         }
         return mysqli_affected_rows($this->sql);

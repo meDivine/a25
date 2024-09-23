@@ -1,5 +1,6 @@
 <?php
-require_once 'App/Infrastructure/sdbh.php'; use sdbh\sdbh;
+require_once 'App/Infrastructure/sdbh.php';
+use App\Infrastructure\sdbh;
 $dbh = new sdbh();
 ?>
 <html>
@@ -60,7 +61,8 @@ $dbh = new sdbh();
                 <button type="submit" class="btn btn-primary">Рассчитать</button>
             </form>
 
-            <h5>Итоговая стоимость: <span id="total-price"></span></h5>
+
+            <div id="total-price" data-bs-toggle="tooltip" data-bs-placement="top" title=""></div>
         </div>
     </div>
 </div>
@@ -75,11 +77,25 @@ $dbh = new sdbh();
                 url: 'App/calculate.php',
                 type: 'POST',
                 data: $(this).serialize(),
+                dataType: 'json',
                 success: function(response) {
-                    $("#total-price").text(response);
+                    if (response.status === 'success') {
+                        $("#total-price").text('Итоговая цена: ' + response.total_price_rub + ' RUB');
+                        $("#total-price").attr('title', 'Итоговая цена: ' + response.total_price_cny.toFixed(2) + ' CNY');
+                        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                            return new bootstrap.Tooltip(tooltipTriggerEl);
+                        });
+
+                        $("#request-button").show();
+                    } else {
+                        $("#total-price").text('Ошибка: ' + response.message);
+                        console.error('Ошибка с сервера: ' + response.message);
+                    }
                 },
-                error: function() {
+                error: function(jqXHR, textStatus, errorThrown) {
                     $("#total-price").text('Ошибка при расчете');
+                    console.error('Ошибка AJAX-запроса: ', textStatus, errorThrown);
                 }
             });
         });
